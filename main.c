@@ -69,6 +69,44 @@ void readGrade(char *grade) {
     }
 }
 
+int semesterCredits(const Semester *s) {
+    int total = 0;
+    for (int i = 0; i < s->courseCount; i++) {
+        total += s->courses[i].credits;
+    }
+    return total;
+}
+double semesterPoints(const Semester *s) {
+    double total = 0;
+    for (int i = 0; i < s->courseCount; i++) {
+        total += gradeToPoints(s->courses[i].grade) * s->courses[i].credits;
+    }
+    return total;
+}
+double calculateGPA(const Semester *s) {
+    int credits = semesterCredits(s);
+    if (credits == 0) return 0.0;          // avoid dividing by zero
+    return semesterPoints(s) / credits;
+}
+int totalCreditsEarned(void) {
+    int total = 0;
+    for (int i = 0; i < semesterCount; i++) {
+        total += semesterCredits(&semesters[i]);
+    }
+    return total;
+}
+double totalPointsEarned(void) {
+    double total = 0;
+    for (int i = 0; i < semesterCount; i++) {
+        total += semesterPoints(&semesters[i]);
+    }
+    return total;
+}
+double calculateCGPA(void) {
+    int credits = totalCreditsEarned();
+    if (credits == 0) return 0.0;
+    return totalPointsEarned() / credits;
+}
 // test
 int main(void) {
     char grade[4];                 
@@ -80,6 +118,44 @@ int main(void) {
     return 0;
 }
 // arib
+void addSemester(void) {
+    Semester s;
+    
+    if (semesterCount >= MAX_SEMESTERS) {
+        printf("Semester limit reached.\n");
+        return;
+    }
+
+    printf("--- Add Semester ---\n");
+
+    s.number = readInt("Semester number: ", 1, MAX_SEMESTERS);
+
+    for (int i = 0; i < semesterCount; i++) {
+        if (semesters[i].number == s.number) {
+            printf("Semester %d already exists.\n", s.number);
+            return;
+        }
+    }
+
+    s.courseCount = readInt("Number of courses: ", 1, MAX_COURSES);
+
+    for (int i = 0; i < s.courseCount; i++) {
+        printf("\nCourse %d\n", i + 1);
+
+        readLine("Course name: ", s.courses[i].name, NAME_LEN);
+        while (strlen(s.courses[i].name) == 0) {
+            printf("Name cannot be empty.\n");
+            readLine("Course name: ", s.courses[i].name, NAME_LEN);
+        }
+
+        s.courses[i].credits = readInt("Credit hours: ", 1, 6);
+        readGrade(s.courses[i].grade);
+    }
+
+    semesters[semesterCount] = s;
+    semesterCount++;
+    printf("\nSemester %d saved.\n", s.number);
+}
 int mainMenu(const char *title,const char *options[], int count){
     int selected = 0;
     
