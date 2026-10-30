@@ -117,6 +117,31 @@ int main(void) {
 
     return 0;
 }
+void viewReport(void) {
+    if (semesterCount == 0) {
+        printf("No semesters entered yet.\n");
+        return;
+    }
+    for (int i = 0; i < semesterCount; i++) {
+        Semester *s = &semesters[i];
+
+        printf("\n=== Semester %d ===\n", s->number);
+        printf("%-25s %-8s %-6s\n", "Course", "Credits", "Grade");
+        printf("---------------------------------------\n");
+        for (int j = 0; j < s->courseCount; j++) {
+            printf("%-25s %-8d %-6s\n", s->courses[j].name,
+                                        s->courses[j].credits,
+                                        s->courses[j].grade);
+        }
+        printf("---------------------------------------\n");
+        printf("Semester GPA: %.2f  (%d credits)\n",
+               calculateGPA(s), semesterCredits(s));
+    }
+    printf("\n=======================================\n");
+    printf("OVERALL CGPA: %.2f  (%d credits)\n",
+           calculateCGPA(), totalCreditsEarned());
+    printf("=======================================\n");
+}
 // arib
 void addSemester(void) {
     Semester s;
@@ -188,7 +213,37 @@ int mainMenu(const char *title,const char *options[], int count){
     }
     return selected;
 }
+void viewSemesters(void) {
+    if (semesterCount == 0) {
+        printf("No semesters added yet.\n");
+        return;
+    }
 
+    printf("--- All Semesters ---\n");
+
+    for (int i = 0; i < semesterCount; i++) {
+        int totalCredits = 0;
+        double totalPoints = 0;
+
+        printf("\nSemester %d\n", semesters[i].number);
+        printf("%-30s %-8s %-6s\n", "Course", "Credits", "Grade");
+        printf("----------------------------------------------\n");
+
+        for (int j = 0; j < semesters[i].courseCount; j++) {
+            printf("%-30s %-8d %-6s\n",
+                   semesters[i].courses[j].name,
+                   semesters[i].courses[j].credits,
+                   semesters[i].courses[j].grade);
+
+            totalCredits += semesters[i].courses[j].credits;
+            totalPoints += gradeToPoints(semesters[i].courses[j].grade)
+                           * semesters[i].courses[j].credits;
+        }
+        
+        printf("----------------------------------------------\n");
+        printf("Credits: %d    GPA: %.2f\n", totalCredits, totalPoints / totalCredits);
+    }
+}
 int main(void){
     char *sample[] = {"option 1", "option 2", "option 3"};
     int count = sizeof(sample)/sizeof(sample[0]);
