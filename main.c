@@ -107,15 +107,42 @@ double calculateCGPA(void) {
     if (credits == 0) return 0.0;
     return totalPointsEarned() / credits;
 }
-// test
-int main(void) {
-    char grade[4];                 
+void saveData(void) {
+    FILE *fp = fopen(DATA_FILE, "w");       
+    if (fp == NULL) {                        
+        printf("Warning: could not save data!\n");
+        return;
+    }
+    fprintf(fp, "%d\n%d\n", degreeCredits, semesterCount);
+    for (int i = 0; i < semesterCount; i++) {
+        fprintf(fp, "%d %d\n", semesters[i].number, semesters[i].courseCount);
+        for (int j = 0; j < semesters[i].courseCount; j++) {
+            fprintf(fp, "%d %s %s\n", semesters[i].courses[j].credits,semesters[i].courses[j].grade,semesters[i].courses[j].name);
+        }
+    }
 
-    readGrade(grade);              
-    printf("You entered: %s\n", grade);
-    printf("Grade points: %.1f\n", gradeToPoints(grade));
+    fclose(fp);                             
+}
+void loadData(void) {
+    FILE *fp = fopen(DATA_FILE, "r");     
+    if (fp == NULL) {
+        return;                              
+    }
+    if (fscanf(fp, "%d %d", &degreeCredits, &semesterCount) != 2 ||
+        semesterCount < 0 || semesterCount > MAX_SEMESTERS) {
+        degreeCredits = 0;
+        semesterCount = 0;
+        fclose(fp);
+        return;
+    }
+    for (int i = 0; i < semesterCount; i++) {
+        fscanf(fp, "%d %d", &semesters[i].number, &semesters[i].courseCount);
+        for (int j = 0; j < semesters[i].courseCount; j++) {
+            fscanf(fp, "%d %3s %49[^\n]", &semesters[i].courses[j].credits,semesters[i].courses[j].grade,semesters[i].courses[j].name);
+        }
+    }
 
-    return 0;
+    fclose(fp);
 }
 void viewReport(void) {
     if (semesterCount == 0) {
@@ -242,6 +269,116 @@ void viewSemesters(void) {
         
         printf("----------------------------------------------\n");
         printf("Credits: %d    GPA: %.2f\n", totalCredits, totalPoints / totalCredits);
+    }
+}
+void editSemester(void) {
+    Semester temp;
+    char title[1500];
+    char line[100];
+    char courseText[MAX_COURSES][100];
+    const char *courseOptions[MAX_COURSES];
+    const char *mainOptions[] = {"Edit a course", "Add a course", "Remove a course",
+                                 "Save changes", "Cancel (discard changes)"};
+    const char *fieldOptions[] = {"Name", "Credit hours", "Grade"};
+    int number, idx = -1, choice, c, field, i;
+
+    if (semesterCount == 0) {
+        printf("No semesters to edit.\n");
+        return;
+    }
+
+    printf("--- Edit Semester ---\n");
+    number = readInt("Semester number to edit: ", 1, MAX_SEMESTERS);
+
+    for (i = 0; i < semesterCount && idx == -1; i++) {
+        if (semesters[i].number == number) {
+            idx = i;
+        }
+    }
+
+    if (idx == -1) {
+        printf("Semester %d not found.\n", number);
+        return;
+    }
+
+    temp = semesters[idx];
+
+    do {
+        sprintf(title, "Editing Semester %d\n\n%-4s %-30s %-8s %-6s",
+                temp.number, "No.", "Course", "Credits", "Grade");
+
+        for (i = 0; i < temp.courseCount; i++) {
+            sprintf(line, "\n%-4d %-30s %-8d %-6s", i + 1, temp.courses[i].name,
+                    temp.courses[i].credits, temp.courses[i].grade);
+            strcat(title, line);
+
+            sprintf(courseText[i], "%d. %s (%d credits, %s)", i + 1,
+                    temp.courses[i].name, temp.courses[i].credits,
+                    temp.courses[i].grade);
+            courseOptions[i] = courseText[i];
+        }
+
+        choice = menu(title, mainOptions, 5);
+
+        if (choice == 0) {
+            c = menu("Which course do you want to edit?", courseOptions, temp.courseCount);
+            if (c != -1) {
+                field = menu("What do you want to change?", fieldOptions, 3);
+                clearScreen();
+
+                if (field == 0) {
+                    do {
+                        readLine("New course name: ", temp.courses[c].name, NAME_LEN);
+                        if (strlen(temp.courses[c].name) == 0) {
+                            printf("Name cannot be empty.\n");
+                        }
+                    } while (strlen(temp.courses[c].name) == 0);
+                } else if (field == 1) {
+                    temp.courses[c].credits = readInt("New credit hours: ", 1, 6);
+                } else if (field == 2) {
+                    readGrade(temp.courses[c].grade);
+                }
+            }
+        } else if (choice == 1) {
+            clearScreen();
+            if (temp.courseCount >= MAX_COURSES) {
+                printf("This semester already has %d courses.\n", MAX_COURSES);
+                pressKey();
+            } else {
+                c = temp.courseCount++;
+
+                do {
+                    readLine("Course name: ", temp.courses[c].name, NAME_LEN);
+                    if (strlen(temp.courses[c].name) == 0) {
+                        printf("Name cannot be empty.\n");
+                    }
+                } while (strlen(temp.courses[c].name) == 0);
+                temp.courses[c].credits = readInt("Credit hours: ", 1, 6);
+                readGrade(temp.courses[c].grade);
+            }
+        } else if (choice == 2) {
+            if (temp.courseCount <= 1) {
+                clearScreen();
+                printf("A semester needs at least one course.\n");
+                pressKey();
+            } else {
+                c = menu("Which course do you want to remove?", courseOptions, temp.courseCount);
+                if (c != -1) {
+                    for (i = c; i < temp.courseCount - 1; i++) {
+                        temp.courses[i] = temp.courses[i + 1];
+                    }
+                    temp.courseCount--;
+                }
+            }
+        }
+    } while (choice >= 0 && choice <= 2);
+
+    clearScreen();
+    if (choice == 3) {
+        semesters[idx] = temp;
+        printf("Changes saved.\n");
+    } else {
+        printf("Edit cancelled. Nothing was changed.\n");
     }
 }
 int main(void){
