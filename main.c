@@ -169,6 +169,44 @@ void viewReport(void) {
            calculateCGPA(), totalCreditsEarned());
     printf("=======================================\n");
 }
+//week 12
+void degreeProgress(void){
+    if (degreeCredits == 0){
+        degreeCredits = readInt("Total credit hours needed for your degree: ", 1, 500);
+        saveData();                         
+    }
+    int done = totalCreditsEarned();
+    double percent = (double)done / degreeCredits * 100.0;
+    printf("\nCredits completed: %d of %d\n", done, degreeCredits);
+    printf("You have completed %.1f%% of your degree requirements.\n", percent);
+    printf("Remaining credits: %d\n", degreeCredits - done);
+}
+void targetSimulator(void){
+    if (degreeCredits == 0){
+        degreeCredits = readInt("Total credit hours needed for your degree: ", 1, 500);
+        saveData();
+    }
+    double target=readDouble("Target CGPA (0.0 - 4.0): ", 0.0, 4.0);
+    int done=totalCreditsEarned();
+    int remaining=degreeCredits - done;
+    if (remaining <= 0) {
+        printf("\nYou have already completed all credits. Final CGPA: %.2f\n",
+               calculateCGPA());
+        return;
+    }
+    double pointsNeeded = target * degreeCredits - totalPointsEarned();
+    double requiredGPA  = pointsNeeded / remaining;
+    printf("\nCurrent CGPA: %.2f | Remaining credits: %d\n", calculateCGPA(), remaining);
+    if (requiredGPA > 4.0) {
+        printf("A target of %.2f is no longer mathematically achievable.\n", target);
+        printf("(You would need %.2f, but the maximum GPA is 4.00.)\n", requiredGPA);
+    } else if (requiredGPA <= 0) {
+        printf("You have already secured this target, whatever your future grades are!\n");
+    } else {
+        printf("To reach a CGPA of %.2f you must average %.2f GPA in your remaining semesters.\n",
+               target, requiredGPA);
+    }
+}
 // arib
 void addSemester(void) {
     Semester s;
