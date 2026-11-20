@@ -2,45 +2,58 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdlib.h>     
+#include <conio.h>      
+
 #define MAX_SEMESTERS 20
 #define MAX_COURSES   10
 #define NAME_LEN      50
 #define DATA_FILE     "students_data.dat"
-typedef struct {
+typedef struct{
     char name[NAME_LEN];
-    int  credits;
+    int credits;
     char grade[4];
 } Course;
-typedef struct {
-    int    number;
-    int    courseCount;
+typedef struct{
+    int number;
+    int courseCount;
     Course courses[MAX_COURSES];
 } Semester;
+
 Semester semesters[MAX_SEMESTERS];
 int semesterCount = 0;
 int degreeCredits = 0;
-
-void readLine(const char *prompt, char *buffer, int size) {
+void readLine(const char *prompt, char *buffer, int size){
     printf("%s", prompt);
-    if (fgets(buffer, size, stdin) == NULL) {
+    if (fgets(buffer, size, stdin) == NULL){
         buffer[0] = '\0';
         return;
     }
     buffer[strcspn(buffer, "\n")] = '\0';
 }
-int readInt(const char *prompt, int min, int max) {
+int readInt(const char *prompt, int min, int max){
     char line[100];
     int value;
-    while (1) {
+    while (1){
         readLine(prompt, line, sizeof(line));
-        if (sscanf(line, "%d", &value) == 1 && value >= min && value <= max) {
+        if (sscanf(line, "%d", &value) == 1 && value >= min && value <= max){
             return value;
         }
-        printf("  Invalid input. ...\n");
+        printf("  Invalid input. Enter a whole number from %d to %d.\n", min, max);
     }
 }
-
-double gradeToPoints(const char *grade) {
+double readDouble(const char *prompt, double min, double max){
+    char line[100];
+    double value;
+    while (1){
+        readLine(prompt, line, sizeof(line));
+        if (sscanf(line, "%lf", &value) == 1 && value >= min && value <= max){
+            return value;
+        }
+        printf("  Invalid input. Enter a number from %.2f to %.2f.\n", min, max);
+    }
+}
+double gradeToPoints(const char *grade){
     if (strcmp(grade, "A")  == 0) return 4.0;
     if (strcmp(grade, "A-") == 0) return 3.7;
     if (strcmp(grade, "B+") == 0) return 3.3;
@@ -52,64 +65,63 @@ double gradeToPoints(const char *grade) {
     if (strcmp(grade, "D+") == 0) return 1.3;
     if (strcmp(grade, "D")  == 0) return 1.0;
     if (strcmp(grade, "F")  == 0) return 0.0;
-    return -1.0;   // nothing so invalid
+    return -1.0;   
 }
-void readGrade(char *grade) {
+void readGrade(char *grade){
     char line[100];
-    while (1) {
+    while (1){
         readLine("Grade (A, A-, B+, B, B-, C+, C, C-, D+, D, F): ", line, sizeof(line));
-        for (int i = 0; line[i] != '\0'; i++) {
+        for (int i = 0; line[i] != '\0'; i++){
             line[i] = toupper((unsigned char)line[i]);
         }
-        if (strlen(line) <= 2 && gradeToPoints(line) >= 0) {
-            strcpy(grade, line);   
+        if (strlen(line) <= 2 && gradeToPoints(line) >= 0){
+            strcpy(grade, line);
             return;
         }
         printf("Invalid grade. Try again.\n");
     }
 }
-
-int semesterCredits(const Semester *s) {
+int semesterCredits(const Semester *s){
     int total = 0;
-    for (int i = 0; i < s->courseCount; i++) {
+    for (int i = 0; i < s->courseCount; i++){
         total += s->courses[i].credits;
     }
     return total;
 }
-double semesterPoints(const Semester *s) {
+double semesterPoints(const Semester *s){
     double total = 0;
     for (int i = 0; i < s->courseCount; i++) {
         total += gradeToPoints(s->courses[i].grade) * s->courses[i].credits;
     }
     return total;
 }
-double calculateGPA(const Semester *s) {
+double calculateGPA(const Semester *s){
     int credits = semesterCredits(s);
-    if (credits == 0) return 0.0;          // avoid dividing by zero
+    if (credits == 0) return 0.0;         
     return semesterPoints(s) / credits;
 }
-int totalCreditsEarned(void) {
+int totalCreditsEarned(void){
     int total = 0;
-    for (int i = 0; i < semesterCount; i++) {
+    for (int i = 0; i < semesterCount; i++){
         total += semesterCredits(&semesters[i]);
     }
     return total;
 }
-double totalPointsEarned(void) {
+double totalPointsEarned(void){
     double total = 0;
-    for (int i = 0; i < semesterCount; i++) {
+    for (int i = 0; i < semesterCount; i++){
         total += semesterPoints(&semesters[i]);
     }
     return total;
 }
-double calculateCGPA(void) {
+double calculateCGPA(void){
     int credits = totalCreditsEarned();
     if (credits == 0) return 0.0;
     return totalPointsEarned() / credits;
 }
-void saveData(void) {
-    FILE *fp = fopen(DATA_FILE, "w");       
-    if (fp == NULL) {                        
+void saveData(void){
+    FILE *fp = fopen(DATA_FILE, "w");
+    if (fp == NULL) {
         printf("Warning: could not save data!\n");
         return;
     }
@@ -117,48 +129,50 @@ void saveData(void) {
     for (int i = 0; i < semesterCount; i++) {
         fprintf(fp, "%d %d\n", semesters[i].number, semesters[i].courseCount);
         for (int j = 0; j < semesters[i].courseCount; j++) {
-            fprintf(fp, "%d %s %s\n", semesters[i].courses[j].credits,semesters[i].courses[j].grade,semesters[i].courses[j].name);
+            fprintf(fp, "%d %s %s\n", semesters[i].courses[j].credits,
+                                      semesters[i].courses[j].grade,
+                                      semesters[i].courses[j].name);
         }
     }
-
-    fclose(fp);                             
+    fclose(fp);
 }
-void loadData(void) {
-    FILE *fp = fopen(DATA_FILE, "r");     
-    if (fp == NULL) {
-        return;                              
+void loadData(void){
+    FILE *fp = fopen(DATA_FILE, "r");
+    if (fp == NULL){
+        return;                             
     }
-    if (fscanf(fp, "%d %d", &degreeCredits, &semesterCount) != 2 ||
-        semesterCount < 0 || semesterCount > MAX_SEMESTERS) {
+    if (fscanf(fp, "%d %d", &degreeCredits, &semesterCount) != 2 ||semesterCount < 0 || semesterCount > MAX_SEMESTERS){
         degreeCredits = 0;
         semesterCount = 0;
         fclose(fp);
         return;
     }
-    for (int i = 0; i < semesterCount; i++) {
+    for (int i = 0; i < semesterCount; i++){
         fscanf(fp, "%d %d", &semesters[i].number, &semesters[i].courseCount);
-        for (int j = 0; j < semesters[i].courseCount; j++) {
+        if (semesters[i].courseCount < 1 || semesters[i].courseCount > MAX_COURSES) {
+            degreeCredits = 0;
+            semesterCount = 0;
+            fclose(fp);
+            return;
+        }
+        for (int j = 0; j < semesters[i].courseCount; j++){
             fscanf(fp, "%d %3s %49[^\n]", &semesters[i].courses[j].credits,semesters[i].courses[j].grade,semesters[i].courses[j].name);
         }
     }
-
     fclose(fp);
 }
-void viewReport(void) {
-    if (semesterCount == 0) {
+void viewReport(void){
+    if (semesterCount == 0){
         printf("No semesters entered yet.\n");
         return;
     }
-    for (int i = 0; i < semesterCount; i++) {
+    for (int i = 0; i < semesterCount; i++){
         Semester *s = &semesters[i];
-
         printf("\n=== Semester %d ===\n", s->number);
         printf("%-25s %-8s %-6s\n", "Course", "Credits", "Grade");
         printf("---------------------------------------\n");
         for (int j = 0; j < s->courseCount; j++) {
-            printf("%-25s %-8d %-6s\n", s->courses[j].name,
-                                        s->courses[j].credits,
-                                        s->courses[j].grade);
+            printf("%-25s %-8d %-6s\n", s->courses[j].name,s->courses[j].credits,s->courses[j].grade);
         }
         printf("---------------------------------------\n");
         printf("Semester GPA: %.2f  (%d credits)\n",
@@ -169,11 +183,11 @@ void viewReport(void) {
            calculateCGPA(), totalCreditsEarned());
     printf("=======================================\n");
 }
-//week 12
+
 void degreeProgress(void){
     if (degreeCredits == 0){
         degreeCredits = readInt("Total credit hours needed for your degree: ", 1, 500);
-        saveData();                         
+        saveData();
     }
     int done = totalCreditsEarned();
     double percent = (double)done / degreeCredits * 100.0;
@@ -181,15 +195,16 @@ void degreeProgress(void){
     printf("You have completed %.1f%% of your degree requirements.\n", percent);
     printf("Remaining credits: %d\n", degreeCredits - done);
 }
+
 void targetSimulator(void){
     if (degreeCredits == 0){
         degreeCredits = readInt("Total credit hours needed for your degree: ", 1, 500);
         saveData();
     }
-    double target=readDouble("Target CGPA (0.0 - 4.0): ", 0.0, 4.0);
-    int done=totalCreditsEarned();
-    int remaining=degreeCredits - done;
-    if (remaining <= 0) {
+    double target = readDouble("Target CGPA (0.0 - 4.0): ", 0.0, 4.0);
+    int done = totalCreditsEarned();
+    int remaining = degreeCredits - done;
+    if (remaining <= 0){
         printf("\nYou have already completed all credits. Final CGPA: %.2f\n",
                calculateCGPA());
         return;
@@ -197,20 +212,59 @@ void targetSimulator(void){
     double pointsNeeded = target * degreeCredits - totalPointsEarned();
     double requiredGPA  = pointsNeeded / remaining;
     printf("\nCurrent CGPA: %.2f | Remaining credits: %d\n", calculateCGPA(), remaining);
-    if (requiredGPA > 4.0) {
+    if (requiredGPA > 4.0){
         printf("A target of %.2f is no longer mathematically achievable.\n", target);
         printf("(You would need %.2f, but the maximum GPA is 4.00.)\n", requiredGPA);
-    } else if (requiredGPA <= 0) {
+    } else if (requiredGPA <= 0){
         printf("You have already secured this target, whatever your future grades are!\n");
-    } else {
-        printf("To reach a CGPA of %.2f you must average %.2f GPA in your remaining semesters.\n",
-               target, requiredGPA);
+    } else{
+        printf("To reach a CGPA of %.2f you must average %.2f GPA in your remaining semesters.\n",target, requiredGPA);
     }
 }
+
 // arib
+void clearScreen(void) {
+    system("cls");
+}
+
+void pressKey(void) {
+    printf("\nPress any key to continue...");
+    _getch();
+}
+int menu(const char *title, const char *options[], int count) {
+    int selected = 0;
+
+    while (1) {
+        clearScreen();
+        printf("========================================\n");
+        printf("%s\n\n", title);
+        for (int i = 0; i < count; i++) {
+            if (i == selected) {
+                printf(">> %s\n", options[i]);
+            } else {
+                printf("   %s\n", options[i]);
+            }
+        }
+
+        int key = _getch();
+
+        if (key == 13) {                            
+            clearScreen();
+            return selected;
+        } else if (key == 27) {                   
+            clearScreen();
+            return -1;
+        } else if (key == 224 || key == 0) {        // arrow key: 72 = up, 80 = down
+            key = _getch();
+            if (key == 72)      selected = (selected - 1 + count) % count;
+            else if (key == 80) selected = (selected + 1) % count;
+        }
+    }
+}
+
 void addSemester(void) {
     Semester s;
-    
+
     if (semesterCount >= MAX_SEMESTERS) {
         printf("Semester limit reached.\n");
         return;
@@ -244,71 +298,13 @@ void addSemester(void) {
 
     semesters[semesterCount] = s;
     semesterCount++;
+
     printf("\nSemester %d saved.\n", s.number);
+    printf("Semester GPA: %.2f\n", calculateGPA(&s));
+    printf("Your CGPA is now: %.2f\n", calculateCGPA());
+    saveData();
 }
-int mainMenu(const char *title,const char *options[], int count){
-    int selected = 0;
-    
-    
 
-    while (1) {
-        system("cls");
-        printf("===%s===\n\n", title);
-        for (int i = 0; i < count; i++) {
-            if (i == selected) {
-                printf(">> %s\n", options[i]);
-            }
-            else {
-                printf("   %s\n", options[i]);
-            }
-        }
-
-        int key = _getch();
-
-        if (key == 13) {                            // Enter
-            system("cls");
-            return selected;
-        }
-        else if (key == 224 || key == 0) {          // arrow key ; 72=up, 80=down;
-            key = _getch();
-
-            if (key == 72)      selected = (selected - 1 + count) % count;
-            else if (key == 80) selected = (selected + 1) % count;
-        }
-    }
-    return selected;
-}
-void viewSemesters(void) {
-    if (semesterCount == 0) {
-        printf("No semesters added yet.\n");
-        return;
-    }
-
-    printf("--- All Semesters ---\n");
-
-    for (int i = 0; i < semesterCount; i++) {
-        int totalCredits = 0;
-        double totalPoints = 0;
-
-        printf("\nSemester %d\n", semesters[i].number);
-        printf("%-30s %-8s %-6s\n", "Course", "Credits", "Grade");
-        printf("----------------------------------------------\n");
-
-        for (int j = 0; j < semesters[i].courseCount; j++) {
-            printf("%-30s %-8d %-6s\n",
-                   semesters[i].courses[j].name,
-                   semesters[i].courses[j].credits,
-                   semesters[i].courses[j].grade);
-
-            totalCredits += semesters[i].courses[j].credits;
-            totalPoints += gradeToPoints(semesters[i].courses[j].grade)
-                           * semesters[i].courses[j].credits;
-        }
-        
-        printf("----------------------------------------------\n");
-        printf("Credits: %d    GPA: %.2f\n", totalCredits, totalPoints / totalCredits);
-    }
-}
 void editSemester(void) {
     Semester temp;
     char title[1500];
@@ -339,7 +335,7 @@ void editSemester(void) {
         return;
     }
 
-    temp = semesters[idx];
+    temp = semesters[idx];     
 
     do {
         sprintf(title, "Editing Semester %d\n\n%-4s %-30s %-8s %-6s",
@@ -414,14 +410,86 @@ void editSemester(void) {
     clearScreen();
     if (choice == 3) {
         semesters[idx] = temp;
+        saveData();                          
         printf("Changes saved.\n");
+        printf("Semester %d GPA: %.2f | CGPA: %.2f\n",
+               temp.number, calculateGPA(&temp), calculateCGPA());
     } else {
         printf("Edit cancelled. Nothing was changed.\n");
     }
 }
+
+
+// marium
+
+void deleteSemester(void) {
+    int number;       
+    int index = -1;      
+    char answer[10];
+
+    if (semesterCount == 0) {
+        printf("There are no semesters to delete.\n");
+        return;                                    
+    }
+    printf("-------- DELETE SEMESTER --------\n");
+    number = readInt("Semester no. to be deleted: ", 1, MAX_SEMESTERS);
+
+    for (int i = 0; i < semesterCount; i++) {
+        if (semesters[i].number == number) {
+            index = i;
+            break;
+        }
+    }
+    if (index == -1) {
+        printf("Semester %d NOT FOUND!\n", number);
+        return;
+    }
+    printf("Semester %d has %d courses (%d credits)\n", semesters[index].number,
+           semesters[index].courseCount, semesterCredits(&semesters[index]));
+
+    readLine("Are you sure you want to delete it? (y/n): ", answer, sizeof(answer));
+
+   
+    if (answer[0] != 'y' && answer[0] != 'Y') {
+        printf("Deletion of semester CANCELLED.\n");
+        return;
+    }
+
+    for (int i = index; i < semesterCount - 1; i++) {
+        semesters[i] = semesters[i + 1];
+    }
+    semesterCount--;
+    saveData();
+
+    printf("Semester %d has been deleted. CGPA is now %.2f\n", number, calculateCGPA());
+}
+
 int main(void){
-    char *sample[] = {"option 1", "option 2", "option 3"};
-    int count = sizeof(sample)/sizeof(sample[0]);
-    int selected = mainMenu("Main Menu ", sample, count);
-    
+    const char *options[] = {"Add Semester", "View Report", "Edit Semester","Delete Semester", "Degree Progress","Target CGPA Simulator", "Exit"};
+    int choice;
+    loadData();
+    do {
+        choice = menu("SMART CGPA TRACKER", options, 7);
+        switch (choice){
+            case 0: addSemester();     
+            break;
+            case 1: viewReport();      
+            break;
+            case 2: editSemester();   
+            break;
+            case 3: deleteSemester();  
+            break;
+            case 4: degreeProgress();  
+            break;
+            case 5: targetSimulator(); 
+            break;
+            case 6: saveData(); 
+            printf("Data saved. Goodbye!\n"); 
+            break;
+        }
+        if (choice >= 0 && choice != 6){
+            pressKey();                
+        }
+    }while (choice != 6);
+    return 0;
 }
